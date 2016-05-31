@@ -1,23 +1,26 @@
 package com.muchev.risto.hnrr.utils;
 
+import android.util.Log;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 import com.muchev.risto.hnrr.model.News;
 
 /**
  * Created by xuefeng on 4/1/2016.
  */
-public class Parsexml {
+public class ParseRSSHelper {
+
+    private static final String TAG = ParseRSSHelper.class.getSimpleName();
+
     private String data;
     private LinkedList<News> news;
 
-    public Parsexml(String data) {
+    public ParseRSSHelper(String data) {
         this.data = data;
         news = new LinkedList<>();
     }
@@ -27,7 +30,6 @@ public class Parsexml {
     }
 
     public boolean process() {
-        boolean status = true;
         News item = null;
         boolean inEntry = false;
         String textValue = "";
@@ -76,8 +78,7 @@ public class Parsexml {
 
 
         } catch (Exception e) {
-            status = false;
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return false;
         }
         return true;

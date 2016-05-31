@@ -1,4 +1,4 @@
-package com.muchev.risto.hnrr;
+package com.muchev.risto.hnrr.activity;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -8,27 +8,23 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import com.muchev.risto.hnrr.R;
 import com.muchev.risto.hnrr.model.News;
-import com.muchev.risto.hnrr.utils.Parsexml;
+import com.muchev.risto.hnrr.utils.DownloadHelper;
+import com.muchev.risto.hnrr.utils.ParseRSSHelper;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final int MSG_REFRESH = 1;
     private static final int REFRESH_TIME_MS = 60000;
@@ -97,22 +93,18 @@ public class MainActivity extends AppCompatActivity {
         );
 
         lvNews.setAdapter(arrayAdapter);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
 
         handler.sendEmptyMessage(MSG_REFRESH);
-
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onDestroy() {
+        super.onDestroy();
 
         if(handler!=null){
+            handler.removeMessages(MSG_ITEM);
             handler.removeMessages(MSG_REFRESH);
+
         }
 
         if(task!=null){
@@ -123,23 +115,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private class NewsDownload extends AsyncTask<String, Void, LinkedList<News>>{
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
+    private class NewsDownload extends AsyncTask<String, String, LinkedList<News>>{
 
         @Override
         protected LinkedList<News> doInBackground(String... params) {
-            String mFileContents = downloadXMLFile(params[0]);
+            publishProgress(getString(R.string.started_download));
+            String mFileContents = DownloadHelper.downloadRss(params[0]);
             if(mFileContents != null) {
-                Parsexml parse = new Parsexml(mFileContents);
-                parse.process();
-                return parse.getNews();
+                publishProgress(getString(R.string.download_complete_and_started_parsing));
+                ParseRSSHelper parse = new ParseRSSHelper(mFileContents);
+                if(parse.process()) {
+                    publishProgress(getString(R.string.parsing_complete));
+                    return parse.getNews();
+                }
             }
 
             return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            Toast.makeText(getApplicationContext(), values[0], Toast.LENGTH_SHORT).show();
+
         }
 
         @Override
@@ -160,35 +158,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private String downloadXMLFile(String urlPath) {
-            StringBuilder buffer = new StringBuilder();
-            try {
-                URL url = new URL(urlPath);
-                HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-                int response = connection.getResponseCode();
-                Log.d("DownloadData", "response code is " + response);
-                InputStream is = connection.getInputStream();
-                InputStreamReader isr = new InputStreamReader(is);
-
-                int charRead;
-                char[] charBuffer = new char[500];
-
-                while (true) {
-                    charRead = isr.read(charBuffer);
-                    if(charRead <= 0) {
-                        break;
-                    }
-                    //build the string
-                    buffer.append(String.copyValueOf(charBuffer, 0, charRead));
-                }
-
-                return buffer.toString();
-            } catch (IOException e) {
-                Log.d("DownloadData", "IO exception" + e.getMessage());
-            }
-
-            return null;
-        }
     }
 }
 
