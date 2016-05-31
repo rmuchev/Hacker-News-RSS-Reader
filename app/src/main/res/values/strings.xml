@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">HNRR</string>
+    <string name="app_name">Hacker News RSS Reader</string>
+    <string name="error">Error</string>
 </resources>
